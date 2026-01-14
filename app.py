@@ -1,153 +1,143 @@
 import streamlit as st
 import google.generativeai as genai
+from datetime import datetime, timedelta
 
-# 1. Page Configuration
-st.set_page_config(page_title="ZeppFusion", page_icon="⚡", layout="wide")
+# 1. Page Config
+st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
 
-# 2. Custom CSS - Icons-гүй, Баруун/Зүүн байрлалтай дизайн
+# 2. Super Advanced CSS (React Component-ыг 100% дуурайлгасан)
 st.markdown("""
     <style>
-    /* Стандарт элементүүдийг устгах */
+    /* Үндсэн тохиргоо */
     header, footer, .stDeployButton, [data-testid="stToolbar"] { display: none !important; }
-    
-    .stApp {
-        background-color: #0B0B0C !important;
-        font-family: 'Inter', -apple-system, sans-serif !important;
-    }
+    .stApp { background-color: #09090b !important; font-family: 'Inter', sans-serif !important; }
 
-    /* --- SIDEBAR DESIGN --- */
+    /* --- SIDEBAR (React Sidebar-тай ижил) --- */
     section[data-testid="stSidebar"] {
-        background-color: #000000 !important;
-        border-right: 1px solid #1A1A1C !important;
-        width: 260px !important;
+        background-color: rgba(24, 24, 27, 0.9) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(20px); width: 280px !important;
+    }
+
+    /* --- MESSAGE CONTAINER (React ChatMessage-ийн CSS) --- */
+    .message-wrapper {
+        display: flex; gap: 16px; padding: 24px 16px; border-radius: 12px;
+        transition: background 0.3s; margin-bottom: 8px;
+    }
+    .bot-bg { background-color: rgba(255, 255, 255, 0.02); }
+    .user-bg { background-color: transparent; }
+
+    /* Avatar Logic */
+    .avatar {
+        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .user-avatar { background: linear-gradient(135deg, #3f3f46, #27272a); border: 1px solid #3f3f46; }
+    .bot-avatar { background: linear-gradient(135deg, #7c3aed, #9333ea); box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.2); }
+
+    /* Typography & Markdown (React prose-invert overrides) */
+    .content-area { flex: 1; min-width: 0; }
+    .sender-name { font-size: 14px; font-weight: 500; margin-bottom: 8px; display: block; }
+    .user-text { color: #d4d4d8; }
+    .bot-text { color: #a78bfa; }
+    
+    .message-body {
+        color: #d4d4d8; line-height: 1.7; font-size: 15px;
     }
     
-    .sidebar-title {
-        color: white; font-size: 20px; font-weight: 700; 
-        padding: 20px 10px; letter-spacing: -0.5px;
+    /* Code Blocks */
+    pre {
+        background: #18181b !important; border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 12px !important; padding: 16px !important; margin: 16px 0 !important;
+    }
+    code { color: #c4b5fd !important; background: rgba(124, 58, 237, 0.1) !important; padding: 2px 6px !important; border-radius: 4px !important; }
+
+    /* Actions (Copy/Clock) */
+    .actions-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .expiry-tag {
+        display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+        background: rgba(39, 39, 42, 0.5); border: 1px solid rgba(63, 63, 70, 0.5);
+        border-radius: 8px; font-size: 11px; color: #71717a;
     }
 
-    /* --- CHAT BUBBLES - NO ICONS --- */
-    /* Нийт чатны контейнер */
-    [data-testid="stChatMessage"] {
-        background-color: transparent !important;
-        padding: 10px 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* Стандарт икон болон аватарыг устгах */
-    [data-testid="stChatMessageAvatarUser"], 
-    [data-testid="stChatMessageAvatarAssistant"],
-    [data-testid="stAvatar"] {
-        display: none !important;
-    }
-
-    /* Хэрэглэгчийн мессеж - Баруун талд */
-    [data-testid="stChatMessageContent"]:has(p:only-child) {
-        width: 100% !important;
-    }
-
-    /* Хэрэглэгчийн мессежийг баруун тийш шахах */
-    .st-emotion-cache-janbn0 { 
-        flex-direction: row-reverse !important;
-    }
-
-    /* Message Bubble Styles */
-    .user-bubble {
-        background-color: #2F2F32;
-        color: white;
-        padding: 12px 18px;
-        border-radius: 20px 20px 4px 20px;
-        max-width: 70%;
-        margin-left: auto; /* Баруун талд */
-        font-size: 15px;
-    }
-
-    .bot-bubble {
-        background-color: #1A1A1C;
-        color: #E2E2E6;
-        padding: 12px 18px;
-        border-radius: 20px 20px 20px 4px;
-        max-width: 85%;
-        margin-right: auto; /* Зүүн талд */
-        border: 1px solid #27272A;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-
-    /* --- INPUT BAR --- */
-    .stChatInputContainer {
-        background-color: transparent !important;
-        padding: 20px 15% !important;
-    }
+    /* Float Input */
+    .stChatInputContainer { padding: 30px 10% !important; background: transparent !important; }
     .stChatInputContainer > div {
-        background-color: #1A1A1C !important;
-        border: 1px solid #27272A !important;
-        border-radius: 24px !important;
-    }
-
-    /* Main Container Padding */
-    .main .block-container {
-        max-width: 900px !important;
-        padding-bottom: 150px !important;
+        background-color: rgba(24, 24, 27, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important; backdrop-filter: blur(15px);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Sidebar Navigation
-with st.sidebar:
-    st.markdown('<div class="sidebar-title">ZeppFusion</div>', unsafe_allow_html=True)
+# 3. Component Rendering Function
+def render_message(role, content, timestamp, image=None):
+    is_user = role == "user"
+    bg_class = "user-bg" if is_user else "bot-bg"
+    avatar_class = "user-avatar" if is_user else "bot-avatar"
+    name_class = "user-text" if is_user else "bot-text"
+    name = "You" if is_user else "ZeppFusion"
+    avatar_icon = "👤" if is_user else "✨"
     
-    if st.button("＋ New Project", use_container_width=True):
+    expiry_time = (datetime.now() + timedelta(days=7)).strftime("%H:%M %p")
+    
+    st.markdown(f"""
+        <div class="message-wrapper {bg_class}">
+            <div class="avatar {avatar_class}">{avatar_icon}</div>
+            <div class="content-area">
+                <div class="sender-name {name_class}">{name}</div>
+                <div class="message-body">{content}</div>
+                <div class="actions-row">
+                    <div class="expiry-tag">⏱ Expires in 7 days</div>
+                    <div style="font-size: 11px; color: #3f3f46;">{timestamp}</div>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# 4. Sidebar (React Inspired)
+with st.sidebar:
+    st.image("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69456a8a7026ba13461ef577/a8ac75228_Gemini_Generated_Image_c9qxrc9qxrc9qxrc1.png", width=60)
+    st.markdown("<h2 style='color:white; margin-top:0;'>ZeppFusion</h2>", unsafe_allow_html=True)
+    
+    if st.button("＋ New Chat Session", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
-        <div style='color:#666; font-size:12px; font-weight:600; padding:10px;'>RECENT</div>
-        <div style='color:#999; font-size:14px; padding:8px 10px; cursor:pointer;'>• Design System</div>
-        <div style='color:#999; font-size:14px; padding:8px 10px; cursor:pointer;'>• Market Analysis</div>
-    """, unsafe_allow_html=True)
+    st.markdown("<br><div style='color:#71717a; font-size:11px; font-weight:600;'>RECENT CHATS</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#a1a1aa; font-size:13px; padding:10px 0;'>• Project Architecture</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#a1a1aa; font-size:13px; padding:10px 0;'>• UI Style Guide</div>", unsafe_allow_html=True)
 
-    # API Key Input
-    st.markdown("<div style='position:fixed; bottom:20px; width:220px;'>", unsafe_allow_html=True)
-    api_key = st.text_input("Gemini API", type="password", placeholder="Enter Key")
-    st.markdown("</div>", unsafe_allow_html=True)
+    api_key = st.text_input("Gemini API Key", type="password")
 
-# 4. Chat Engine Logic
+# 5. Chat History & Execution
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Empty State
-if not st.session_state.messages:
-    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center; color:white; font-size:32px; font-weight:600; opacity:0.8;'>What's on your mind?</h1>", unsafe_allow_html=True)
-else:
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            st.markdown(f'<div class="user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+# Show history
+for msg in st.session_state.messages:
+    render_message(msg["role"], msg["content"], msg["time"])
 
-# 5. Input Functionality
-if prompt := st.chat_input("Ask ZeppFusion..."):
+# Input logic
+if prompt := st.chat_input("Ask ZeppFusion anything..."):
+    now = datetime.now().strftime("%I:%M %p")
+    st.session_state.messages.append({"role": "user", "content": prompt, "time": now})
+    st.rerun()
+
+# API Interaction
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     if not api_key:
-        st.error("Please add API Key.")
+        st.warning("Please enter API Key in sidebar")
     else:
-        # Хэрэглэгчийн мессежийг шууд харуулах
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        # AI-ийн хариултыг авах
         try:
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
-            chat = model.start_chat(history=history)
-            
-            response = chat.send_message(prompt)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-            st.rerun()
+            # Streaming effect simulation for UI
+            with st.spinner("ZeppFusion is thinking..."):
+                response = model.generate_content(st.session_state.messages[-1]["content"])
+                bot_now = datetime.now().strftime("%I:%M %p")
+                st.session_state.messages.append({"role": "assistant", "content": response.text, "time": bot_now})
+                st.rerun()
         except Exception as e:
             st.error(f"Error: {e}")

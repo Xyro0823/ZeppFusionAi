@@ -10,7 +10,7 @@ api_key = st.sidebar.text_input("Gemini API Key оруулна уу:", type="pas
 
 if api_key:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
     # Чатны түүхийг хадгалах
     if "messages" not in st.session_state:
@@ -35,4 +35,5 @@ if api_key:
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
 else:
+
     st.info("Ашиглахын тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")

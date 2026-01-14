@@ -3,144 +3,79 @@ import google.generativeai as genai
 from PIL import Image
 import io
 
-# 1. Page Config
-st.set_page_config(page_title="ZeppFusion Ultra", page_icon="⚡", layout="wide")
+# 1. Page Configuration
+st.set_page_config(page_title="ZeppFusion VOXA", page_icon="⚡", layout="wide")
 
-# 2. Шилдэг апп-уудын дизайныг нэгтгэсэн CSS
+# 2. VOXA Inspired CSS (Нарийвчилсан загварчлал)
 st.markdown("""
     <style>
-    .stApp { background-color: #0d0e10 !important; color: #ececed !important; }
-    
-    /* Linear & Claude Style Sidebar */
+    /* Үндсэн Background */
+    .stApp {
+        background-color: #17181c !important; /* Гүн бараан дэвсгэр */
+        color: #e0e0e0 !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+
+    /* Sidebar - VOXA-ийн цэс */
     section[data-testid="stSidebar"] {
-        background-color: #111214 !important;
-        border-right: 1px solid #272a2d !important;
+        background-color: #0d0e10 !important; /* Sidebar-ийн илүү бараан өнгө */
+        border-right: 1px solid #282a2e !important;
         width: 300px !important;
     }
 
-    /* Floating Toolbar (ChatGPT Style) */
-    .stChatInputContainer {
-        padding: 20px 100px !important;
-        bottom: 20px !important;
-    }
-    .stChatInputContainer > div {
-        background-color: #1a1b1e !important;
-        border: 1px solid #33363a !important;
-        border-radius: 16px !important;
-        padding-left: 50px !important;
+    /* Sidebar-ийн лого */
+    .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 20px 0 30px 20px;
     }
 
-    /* Файл хавсаргах товчны дизайн */
-    .stFileUploader {
-        position: absolute;
-        bottom: 42px;
-        left: 115px;
-        z-index: 1000;
-        width: 45px;
+    /* Search Input (Sidebar дотор) */
+    .stTextInput label { display: none; } /* Search-ийн label-ийг нуух */
+    .stTextInput div[data-baseweb="input"] {
+        background-color: #1f2024 !important;
+        border: 1px solid #33363b !important;
+        border-radius: 8px !important;
+        padding: 5px 10px !important;
+        margin-bottom: 20px;
     }
-    [data-testid="stFileUploaderDropzone"] {
-        background: #272a2d !important;
-        border-radius: 50% !important;
-        border: none !important;
-        padding: 5px !important;
-        width: 35px; height: 35px;
+    .stTextInput input {
+        color: #e0e0e0 !important;
     }
-    [data-testid="stFileUploaderDropzone"] svg { fill: #a1a1aa !important; }
-    div[data-testid="stFileUploaderDropzone"] div { display: none; }
+    .stTextInput .st-cf { /* Search icon */
+        margin-right: 5px;
+        color: #888;
+    }
 
-    /* Message Bubbles - Minimalist */
+    /* Sidebar-ийн навигацийн товчлуурууд */
+    div[data-testid="stSidebarNav"] li {
+        margin-bottom: 5px;
+    }
+    div[data-testid="stSidebarNav"] li a {
+        background-color: transparent !important;
+        color: #a0a2a8 !important;
+        font-weight: 500;
+        padding: 10px 20px !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stSidebarNav"] li a:hover {
+        background-color: #1f2024 !important;
+        color: #e0e0e0 !important;
+    }
+    div[data-testid="stSidebarNav"] li a.current-page { /* Сонгогдсон хуудас */
+        background-color: #282a2e !important;
+        color: #e0e0e0 !important;
+    }
+
+    /* Main Chat Area - Төвлөрөл */
+    .main .block-container {
+        max-width: 900px !important;
+        padding-top: 2rem !important;
+        padding-bottom: 10rem !important;
+    }
+
+    /* Чатны хөөсөнцөр (Chat Bubbles) */
     [data-testid="stChatMessage"] {
-        padding: 2rem 5rem !important;
-        border-bottom: 1px solid #1f2123 !important;
-    }
-
-    /* Shildeg app-uud shig "Gradient" title */
-    .ultra-title {
-        background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800;
-        font-size: 50px;
-        text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 3. Sidebar - Tools & History
-with st.sidebar:
-    st.markdown("<h2 style='color: white; letter-spacing: -1px;'>⚡ ZeppFusion</h2>", unsafe_allow_html=True)
-    
-    if st.button("＋ New Chat", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
-
-    st.markdown("<br><b>⚙️ API CONFIG</b>", unsafe_allow_html=True)
-    api_key = st.text_input("Gemini API Key", type="password", placeholder="Enter your key...", label_visibility="collapsed")
-    
-    st.markdown("<br><b>🛠️ POWER TOOLS</b>", unsafe_allow_html=True)
-    tool_search = st.checkbox("🌐 Web Search (Simulation)", value=True)
-    tool_vision = st.checkbox("👁️ Vision Analysis", value=True)
-    tool_code = st.checkbox("💻 Code Interpreter", value=True)
-
-    st.markdown("---")
-    st.caption("v2.5 Pro - Enterprise Edition")
-
-# 4. Main Chat Interface Logic
-if not api_key:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 class='ultra-title'>ZeppFusion Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#94a3b8; font-size:18px;'>The ultimate workspace for AI-powered productivity.</p>", unsafe_allow_html=True)
-    
-    # Feature Showcase
-    cols = st.columns(3)
-    with cols[0]: st.info("**Analyze** complex files & images.")
-    with cols[1]: st.success("**Build** high-quality code instantly.")
-    with cols[2]: st.warning("**Write** world-class narratives.")
-else:
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Чатны түүхийг харуулах
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"], avatar="👤" if message["role"] == "user" else "⚡"):
-            st.markdown(message["content"])
-            if "image" in message:
-                st.image(message["image"], caption="Attached Content", width=400)
-
-    # --- TOOLS IN THE INPUT BAR ---
-    # Чат бичих хэсгийн зүүн талд байрлах файл хавсаргагч
-    uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-
-    if prompt := st.chat_input("ZeppFusion-ээс юу ч хамаагүй асуу..."):
-        # Хэрэглэгчийн мессежийг хадгалах
-        user_msg = {"role": "user", "content": prompt}
-        
-        if uploaded_file and tool_vision:
-            img = Image.open(uploaded_file)
-            user_msg["image"] = img
-        
-        st.session_state.messages.append(user_msg)
-        st.rerun()
-
-    # AI Response Engine
-    if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-        with st.chat_message("assistant", avatar="⚡"):
-            try:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                last_msg = st.session_state.messages[-1]
-                
-                with st.spinner("Processing with Pro Tools..."):
-                    if "image" in last_msg:
-                        # VISION TOOL
-                        response = model.generate_content([f"System: You are ZeppFusion Pro. Analyzing image and text: {last_msg['content']}", last_msg["image"]])
-                    else:
-                        # CONTEXTUAL CHAT
-                        history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
-                        chat = model.start_chat(history=history)
-                        response = chat.send_message(last_msg["content"])
-                
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"Tool Error: {e}")
+        background-color: #2

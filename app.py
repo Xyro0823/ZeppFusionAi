@@ -105,12 +105,13 @@ if api_key:
                 if response.text:
                     st.markdown(response.text)
                     st.session_state.messages.append({"role": "assistant", "content": response.text})
-        else:
-            st.warning("Хариулт ирсэнгүй, дахин оролдоно уу.")
+                else:
+                    st.warning("Хариулт ирсэнгүй, дахин оролдоно уу.")
     except Exception as e:
         st.error(f"Алдаа гарлаа: {e}")
 else:
     st.info("👈 Үргэлжлүүлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
+
 
 
 

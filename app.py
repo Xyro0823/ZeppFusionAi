@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # ===============================
-# CSS (ChatGPT-style Minimal Dark)
+# CSS
 # ===============================
 st.markdown("""
 <style>
@@ -24,35 +24,26 @@ st.markdown("""
   --accent: #6366f1;
 }
 
-/* App */
 .stApp {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Sidebar */
 section[data-testid="stSidebar"] {
   background: var(--bg);
   border-right: 1px solid var(--border);
 }
 
-/* Sidebar buttons */
 .stSidebar button {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
 }
+
 .stSidebar button:hover {
   background: #18181b;
-}
-
-/* Chat messages */
-[data-testid="stChatMessage"] {
-  background: transparent;
-  padding-left: 0;
-  padding-right: 0;
 }
 
 [data-testid="stChatMessageContent"] {
@@ -61,12 +52,6 @@ section[data-testid="stSidebar"] {
   max-width: 720px;
 }
 
-/* Assistant subtle bg */
-[data-testid="stChatMessage"][aria-label="assistant"] {
-  background: linear-gradient(180deg, rgba(99,102,241,0.03), transparent);
-}
-
-/* Chat input */
 .stChatInputContainer {
   padding: 16px 18%;
   background: linear-gradient(to top, var(--bg) 60%, transparent);
@@ -84,19 +69,18 @@ section[data-testid="stSidebar"] {
   border-radius: 50%;
 }
 
-/* Welcome */
 .welcome {
   text-align: center;
   margin-top: 120px;
 }
+
 .welcome h1 {
   font-size: 44px;
   font-weight: 700;
-  letter-spacing: -1px;
 }
+
 .welcome p {
   color: var(--muted);
-  font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -113,26 +97,12 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔑 Gemini API Key")
+
     api_key = st.text_input(
         "API Key",
         type="password",
         placeholder="AIza..."
     )
-
-    st.markdown("---")
-    st.markdown("""
-    <div style="position:fixed; bottom:20px; left:20px; right:20px;
-    background:#111113; border:1px solid #1f1f23;
-    border-radius:14px; padding:12px; display:flex; gap:10px;">
-      <div style="width:32px;height:32px;border-radius:50%;
-      background:linear-gradient(45deg,#6366f1,#a855f7);
-      display:flex;align-items:center;justify-content:center;font-weight:600;">U</div>
-      <div>
-        <div style="font-size:13px;">User</div>
-        <div style="font-size:11px;color:#9ca3af;">Personal</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ===============================
 # SESSION STATE
@@ -141,8 +111,69 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ===============================
-# WELCOME SCREEN
+# WELCOME
 # ===============================
 if not st.session_state.messages:
     st.markdown("""
-    <div c
+    <div class="welcome">
+        <h1>What can I help you build?</h1>
+        <p>ZeppFusion AI is ready.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ===============================
+# CHAT HISTORY
+# ===============================
+for msg in st.session_state.messages:
+    avatar = "👤" if msg["role"] == "user" else "⚡"
+    with st.chat_message(msg["role"], avatar=avatar):
+        st.markdown(msg["content"])
+
+# ===============================
+# CHAT INPUT
+# ===============================
+prompt = st.chat_input("Ask anything...")
+
+if prompt:
+    if not api_key:
+        st.warning("Sidebar дээр Gemini API key оруулна уу.")
+    else:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": prompt
+        })
+
+        with st.chat_message("assistant", avatar="⚡"):
+            try:
+                genai.configure(api_key=api_key)
+
+                model = genai.GenerativeModel(
+                    model_name="gemini-2.0-flash",
+                    system_instruction=(
+                        "Чи ZeppFusion нэртэй Монгол хэлний AI. "
+                        "Монгол хэлээр товч, ойлгомжтой хариул."
+                    )
+                )
+
+                history = []
+                for m in st.session_state.messages[:-1]:
+                    role = "user" if m["role"] == "user" else "model"
+                    history.append({
+                        "role": role,
+                        "parts": [m["content"]]
+                    })
+
+                chat = model.start_chat(history=history)
+                response = chat.send_message(prompt)
+
+                st.markdown(response.text)
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response.text
+                })
+
+            except Exception as e:
+                st.error(f"Алдаа: {e}")
+
+        st.rerun()

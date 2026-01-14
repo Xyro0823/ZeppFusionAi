@@ -67,39 +67,48 @@ st.markdown("<h1 style='text-align: center; color: #A78BFA;'>ZeppFusion AI</h1>"
 st.markdown("<p style='text-align: center; color: #94A3B8; font-style: italic;'>Монгол хэлээр харилцах ухаалаг туслах</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 5. Чат болон AI logic
+# --- Чатны ой санамжийг ажиллуулах хэсэг ---
 if api_key:
-    try:
-        genai.configure(api_key=api_key)
-        # Хамгийн сүүлийн үеийн загварыг ашиглах
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
 
-        # Хуучин мессежүүдийг харуулах
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-        # Асуулт авах хэсэг
-        if prompt := st.chat_input("ZeppFusion-ээс юу ч хамаагүй асуу..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(prompt)
+    # 1. Gemini-ийн чат түүхийг бэлдэх (Ой санамж үүсгэх)
+    # Өмнөх мессежүүдийг Gemini-ийн ойлгох форматад оруулна
+    history = [
+        {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
+        for m in st.session_state.messages
+    ]
+    
+    # Чат сессийг эхлүүлэх
+    chat_session = model.start_chat(history=history)
 
-            with st.chat_message("assistant", avatar="⚡"):
-                with st.spinner("Бодож байна..."):
-                    # Илүү дэлгэрэнгүй System Prompt
-                    full_prompt = f"Чиний нэр ZeppFusion. Чи бол маш ухаалаг, тусч монгол AI туслах юм. Хэрэглэгчийн дараах асуултад монгол хэлээр маш цэгцтэй хариул: {prompt}"
-                    response = model.generate_content(full_prompt)
-                    
-                    if response.text:
-                        st.markdown(response.text)
-                        st.session_state.messages.append({"role": "assistant", "content": response.text})
+    # Хуучин мессежүүдийг харуулах
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Шинэ асуулт авах
+    if prompt := st.chat_input("ZeppFusion-ээс юу ч хамаагүй асуу..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Бодож байна..."):
+                # start_chat ашиглаж байгаа тул 'full_instruction' хэрэггүй, 
+                # учир нь тэр өмнөх бүх зүйлийг санаж байгаа.
+                response = chat_session.send_message(prompt)
+                
+                if response.text:
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
                     else:
                         st.warning("Хариулт ирсэнгүй, дахин оролдоно уу.")
     except Exception as e:
         st.error(f"Алдаа гарлаа: {e}")
 else:
     st.info("👈 Үргэлжлүүлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
+

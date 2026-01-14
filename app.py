@@ -1,113 +1,72 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import io
 
 # 1. Апп-ны үндсэн тохиргоо
-st.set_page_config(
-    page_title="ZeppFusion AI", 
-    page_icon="⚡", 
-    layout="centered"
-)
+st.set_page_config(page_title="ZeppFusion AI", page_icon="⚡", layout="centered")
 
-# 2. Custom CSS - Дизайн
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #0E1117;
-    }
-    [data-testid="stSidebar"] {
-        background-image: linear-gradient(#2E1065, #0E1117);
-        color: white;
-    }
-    div.stButton > button:first-child {
-        background-color: #7C3AED;
-        color: white;
-        border-radius: 10px;
-        border: none;
-        width: 100%;
-    }
-    [data-testid="stChatMessage"] {
-        border-radius: 15px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 3. Sidebar хэсэг
+# 2. Sidebar - Нэмэлт хэрэгслүүд
 with st.sidebar:
-    try:
-        st.image("logo.png", width=100)
-    except:
-        st.title("⚡")
-    st.title("⚙️ Тохиргоо")
-    api_key = st.text_input("Google Gemini API Key:", type="password", help="AI Studio-оос авсан түлхүүрээ энд хийнэ үү.")
+    st.image("logo.png", width=100)
+    st.title("🛠️ Хэрэгслүүд")
+    api_key = st.text_input("Gemini API Key:", type="password")
     
     st.markdown("---")
+    # TOOL 1: Зураг оруулах хэсэг
+    uploaded_file = st.file_uploader("Зураг шинжлэх (Vision)", type=["jpg", "png", "jpeg"])
+    
+    st.markdown("---")
+    # TOOL 2: Чат устгах
     if st.button("🗑️ Чат цэвэрлэх"):
         st.session_state.messages = []
         st.rerun()
-    
-    st.markdown("---")
-    st.caption("Version 1.0.2 | Powered by Gemini 1.5 Flash")
 
-# 4. Үндсэн нүүр (Header)
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    try:
-        image = Image.open('logo.png')
-        st.image(image, use_container_width=True)
-    except:
-        st.write("⚡")
+    # TOOL 3: Чат татаж авах (Export)
+    if "messages" in st.session_state and st.session_state.messages:
+        chat_text = ""
+        for m in st.session_state.messages:
+            chat_text += f"{m['role']}: {m['content']}\n\n"
+        st.download_button("📥 Чатыг татах", chat_text, file_name="zeppfusion_chat.txt")
 
-st.markdown("<h1 style='text-align: center; color: #A78BFA;'>ZeppFusion AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94A3B8; font-style: italic;'>Монгол хэлээр харилцах ухаалаг туслах</p>", unsafe_allow_html=True)
-st.markdown("---")
-
-# 5. Чатны ой санамж болон AI Logic
+# 3. Үндсэн Logic
 if api_key:
     try:
         genai.configure(api_key=api_key)
-        # Тэмдэглэл: gemini-2.5 биш gemini-1.5-flash-latest нь одоогоор хамгийн тогтвортой нь
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash') # Таны дуртай хувилбар
 
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
-        # Gemini-ийн ойлгох форматад түүхийг хувиргах
-        history = [
-            {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
-            for m in st.session_state.messages
-        ]
-        
-        # Ой санамжтай чат сессийг эхлүүлэх
-        chat_session = model.start_chat(history=history)
-
-        # Хуучин мессежүүдийг дэлгэцэнд харуулах
+        # Түүх харуулах
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        # Шинэ асуулт авах
-        if prompt := st.chat_input("ZeppFusion-ээс юу ч хамаагүй асуу..."):
-            # 1. Хэрэглэгчийн асуултыг харуулах
+        # TOOL 1 Logic: Зурагтай асуулт асуух
+        if prompt := st.chat_input("Асуултаа бичнэ үү..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user", avatar="👤"):
+            with st.chat_message("user"):
                 st.markdown(prompt)
+                if uploaded_file:
+                    st.image(uploaded_file, caption="Илгээсэн зураг", width=200)
 
-            # 2. AI хариулт өгөх
-            with st.chat_message("assistant", avatar="⚡"):
-                with st.spinner("Бодож байна..."):
-                    # Ой санамжаа ашиглан хариулах
-                    response = chat_session.send_message(prompt)
-                    
-                    if response.text:
-                        st.markdown(response.text)
-                        st.session_state.messages.append({"role": "assistant", "content": response.text})
+            with st.chat_message("assistant"):
+                with st.spinner("ZeppFusion бодож байна..."):
+                    if uploaded_file:
+                        # Зураг + Текст хосолсон асуулт
+                        img = Image.open(uploaded_file)
+                        response = model.generate_content([f"Чи бол ZeppFusion. Зургийг шинжлээд монголоор хариул: {prompt}", img])
                     else:
-                        st.warning("Хариулт ирсэнгүй, дахин оролдоно уу.")
-                        
+                        # Зөвхөн текст
+                        history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
+                        chat = model.start_chat(history=history)
+                        response = chat.send_message(prompt)
+                    
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+
     except Exception as e:
-        st.error(f"Алдаа гарлаа: {e}")
+        st.error(f"Алдаа: {e}")
 else:
-    st.info("👈 Үргэлжлүүлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
+    st.info("👈 Эхлэхийн тулд API Key оруулна уу.")

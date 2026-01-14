@@ -142,7 +142,7 @@ if st.session_state.get("current_session"):
         if api_key:
             try:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt)
                 save_msg(st.session_state.current_session, "assistant", response.text)
             except Exception as e:
@@ -152,3 +152,4 @@ if st.session_state.get("current_session"):
         st.rerun()
 else:
     st.markdown("<div style='text-align:center; margin-top:20vh; opacity:0.3;'><h1>Select a chat or start a new one</h1></div>", unsafe_allow_html=True)
+

@@ -11,7 +11,7 @@ if api_key:
     try:
         genai.configure(api_key=api_key)
         # Энд 'gemini-1.5-flash-latest' гэж бичсэнээр хамгийн шинэ хувилбарыг нь авна
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-pro')
 
         if "messages" not in st.session_state:
             st.session_state.messages = []
@@ -40,5 +40,6 @@ if api_key:
         st.error(f"Алдаа гарлаа: {e}")
 else:
     st.info("Ашиглахын тулд API Key-ээ оруулна уу.")
+
 
 

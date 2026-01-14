@@ -2,150 +2,173 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. Page Configuration
+# 1. Page Config
 st.set_page_config(page_title="ZeppFusion AI", page_icon="⚡", layout="wide")
 
-# 2. Gemini Official UI/UX Style CSS
+# 2. Ultra Modern CSS (Base44 / Vercel Style)
 st.markdown("""
     <style>
-    /* Үндсэн фон болон өнгө */
+    /* Үндсэн фон */
     .stApp {
-        background-color: #131314 !important;
-        color: #e3e3e3 !important;
+        background-color: #0B0C0E !important;
+        color: #FFFFFF !important;
     }
 
     /* Зүүн талын цэс (Sidebar) */
     [data-testid="stSidebar"] {
-        background-color: #1e1f20 !important;
-        border-right: 1px solid #333537 !important;
-        width: 280px !important;
+        background-color: #111214 !important;
+        border-right: 1px solid #1F2023 !important;
+        width: 320px !important;
     }
 
-    /* Sidebar доторх New Chat товчлуур */
-    .stButton > button {
-        border-radius: 20px !important;
-        background-color: #1a1c1e !important;
-        border: 1px solid #444746 !important;
-        color: #e3e3e3 !important;
-        padding: 8px 16px !important;
-        font-weight: 500 !important;
-        transition: 0.2s;
+    /* Шинэ чат товчлуур - Нил ягаан */
+    div.stButton > button {
+        background-color: #7C3AED !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: none !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        transition: 0.3s;
     }
-    .stButton > button:hover {
-        background-color: #2d2f31 !important;
-        border-color: #5f6368 !important;
+    div.stButton > button:hover {
+        background-color: #6D28D9 !important;
+        transform: translateY(-1px);
     }
 
-    /* Чатны талбарыг Gemini шиг голд нь төвлөрүүлэх */
+    /* Төв хэсгийн Welcome дизайн */
     .main .block-container {
-        max-width: 820px !important; /* Нарийн төвлөрсөн чат */
-        padding-top: 4rem !important;
-        padding-bottom: 8rem !important;
+        max-width: 1000px !important;
+        padding-top: 2rem !important;
     }
 
-    /* Мэндчилгээний хэсэг */
-    .welcome-text {
-        font-size: 56px !important;
-        font-weight: 500 !important;
-        letter-spacing: -1px !important;
-        margin-bottom: 0px !important;
-    }
-    .gradient-text {
-        background: linear-gradient(to right, #4285f4, #9b72cb, #d96570);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    .welcome-container {
+        text-align: center;
+        padding: 40px 0;
     }
 
-    /* Асуулт бичих хэсэг (Floating Prompt Bar) */
+    .welcome-title {
+        font-size: 48px !important;
+        font-weight: 700 !important;
+        margin-bottom: 10px !important;
+    }
+
+    .welcome-subtitle {
+        color: #9CA3AF !important;
+        font-size: 18px !important;
+        margin-bottom: 40px !important;
+    }
+
+    /* Карт хэлбэртэй хэсгүүд */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .feature-card {
+        background-color: #18191C;
+        border: 1px solid #27282B;
+        padding: 24px;
+        border-radius: 16px;
+        text-align: center;
+    }
+
+    .feature-icon {
+        font-size: 24px;
+        margin-bottom: 12px;
+        color: #A78BFA;
+    }
+
+    /* Доод талын Input Box */
     .stChatInputContainer {
-        padding: 0 !important;
+        background-color: transparent !important;
         bottom: 30px !important;
     }
     .stChatInputContainer > div {
-        background-color: #1e1f20 !important;
-        border: 1px solid #444746 !important;
-        border-radius: 32px !important;
-        padding: 5px 10px !important;
+        background-color: #18191C !important;
+        border: 1px solid #27282B !important;
+        border-radius: 16px !important;
+        padding: 8px !important;
     }
 
-    /* Чатны мессежүүдийн фонт болон зай */
-    [data-testid="stChatMessage"] {
-        padding: 1.5rem 0rem !important;
-        border-bottom: 0px !important;
-        background-color: transparent !important;
-    }
-    .stMarkdown p {
-        font-size: 16px !important;
-        line-height: 1.6 !important;
-    }
-
-    /* Sidebar-ийн гарчигнууд */
-    .sidebar-label {
-        color: #8e918f !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        margin: 20px 0 10px 0 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    /* Sidebar Input fields */
+    .stTextInput input {
+        background-color: #18191C !important;
+        border: 1px solid #27282B !important;
+        border-radius: 10px !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Sidebar (Left Menu)
+# 3. Sidebar
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Лого
-    try:
-        st.image("logo.png", width=36)
-    except:
-        st.markdown("<h3 style='color:#a78bfa'>⚡</h3>", unsafe_allow_html=True)
+    # Лого ба Нэр
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        try: st.image("logo.png", width=40)
+        except: st.write("⚡")
+    with col2:
+        st.markdown("### ZeppFusion")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # New Chat
-    if st.button("＋ Шинэ чат", use_container_width=True):
+    if st.button("＋ New Chat"):
         st.session_state.messages = []
         st.rerun()
 
-    st.markdown("<p class='sidebar-label'>Тохиргоо</p>", unsafe_allow_html=True)
-    api_key = st.text_input("Gemini API Key", type="password", label_visibility="collapsed", placeholder="API түлхүүр...")
-
-    st.markdown("<p class='sidebar-label'>Хэрэгслүүд</p>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Зураг шинжлэх", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-
-    if "messages" in st.session_state and len(st.session_state.messages) > 0:
-        chat_text = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages])
-        st.download_button("📥 Чатыг татах", chat_text, file_name="zeppfusion_chat.txt", use_container_width=True)
+    st.markdown("<br><p style='color:#6B7280; font-size:12px;'>SETTINGS</p>", unsafe_allow_html=True)
+    api_key = st.text_input("API Key", type="password", label_visibility="collapsed", placeholder="Enter your key...")
+    
+    st.markdown("<br><p style='color:#6B7280; font-size:12px;'>TOOLS</p>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+    
+    st.markdown("<br><br>")
+    st.caption("© 2026 ZeppFusion AI")
 
 # 4. Main UI Logic
 if not api_key:
-    # Gemini Home Screen
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 class='welcome-text gradient-text'>Сайн байна уу?</h1>", unsafe_allow_html=True)
-    st.markdown("<h1 class='welcome-text' style='color: #444746;'>Би ZeppFusion байна.</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #8e918f; font-size: 18px; margin-top: 20px;'>Өнөөдөр танд юугаар туслах вэ?</p>", unsafe_allow_html=True)
-    st.info("👈 Үргэлжлүүлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
+    # Скриншот дээрх шиг Welcome Screen
+    st.markdown(f"""
+        <div class="welcome-container">
+            <div style="font-size: 60px; margin-bottom: 20px;">✨</div>
+            <h1 class="welcome-title">Welcome to <span style="color: #7C3AED;">ZeppFusion</span></h1>
+            <p class="welcome-subtitle">Your intelligent assistant for any question, task, or creative challenge</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Feature Cards (3 багана)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""<div class="feature-card"><div class="feature-icon">⚡</div><b>Lightning Fast</b><br><small style='color:#6B7280'>Get instant intelligent responses</small></div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown("""<div class="feature-card"><div class="feature-icon">🛡️</div><b>Private & Secure</b><br><small style='color:#6B7280'>Your chats are protected</small></div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown("""<div class="feature-card"><div class="feature-icon">🌐</div><b>Multimodal AI</b><br><small style='color:#6B7280'>Analyze images and text together</small></div>""", unsafe_allow_html=True)
+
+    st.info("👈 Please enter your Gemini API Key in the sidebar to start chatting.")
+
 else:
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display Chat History
+    # Chat History
     for message in st.session_state.messages:
-        # Надтай (Gemini) адилхан аватар ашиглах
         avatar = "👤" if message["role"] == "user" else "⚡"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-    # Floating Chat Input
-    if prompt := st.chat_input("Эндээс асуу..."):
-        # User message
+    # Input Area
+    if prompt := st.chat_input("Ask anything..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👤"):
             st.markdown(prompt)
             if uploaded_file:
-                st.image(uploaded_file, width=280)
+                st.image(uploaded_file, width=300)
 
-        # AI Assistant Response
         with st.chat_message("assistant", avatar="⚡"):
             try:
                 genai.configure(api_key=api_key)
@@ -156,7 +179,6 @@ else:
                         img = Image.open(uploaded_file)
                         response = model.generate_content([f"Чи бол ZeppFusion AI. Монголоор хариул: {prompt}", img])
                     else:
-                        # Memory chat
                         history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
                         chat = model.start_chat(history=history)
                         response = chat.send_message(prompt)
@@ -164,4 +186,4 @@ else:
                     st.markdown(response.text)
                     st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
-                st.error(f"Алдаа: {e}")
+                st.error(f"Error: {e}")

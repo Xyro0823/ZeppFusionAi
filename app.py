@@ -148,7 +148,7 @@ if prompt := st.chat_input("Message ZeppFusion..."):
     else:
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
             
             st.session_state.messages.append({
@@ -159,3 +159,4 @@ if prompt := st.chat_input("Message ZeppFusion..."):
             st.rerun()
         except Exception as e:
             st.error(f"AI Error: {e}")
+

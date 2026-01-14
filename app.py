@@ -28,7 +28,7 @@ try:
     
     # Хамгийн тогтвортой ажиллах загварыг сонгох
     # Хэрэв gemini-1.5-flash ажиллахгүй бол gemini-pro руу шилжинэ
-    model_name = 'gemini-1.5-flash'
+    model_name = 'gemini-2.5-flash'
     model = genai.GenerativeModel(model_name)
     
     # Чатны түүхийг хадгалах хэсэг
@@ -67,3 +67,4 @@ try:
 
 except Exception as e:
     st.error(f"Тохиргооны алдаа: {str(e)}")
+

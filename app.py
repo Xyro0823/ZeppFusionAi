@@ -3,138 +3,146 @@ import google.generativeai as genai
 from PIL import Image
 import io
 
-# 1. Хуудасны тохиргоо - Gemini шиг Wide layout
+# 1. Page Configuration
 st.set_page_config(page_title="ZeppFusion AI", page_icon="⚡", layout="wide")
 
-# 2. ШИНЭЧЛЭГДСЭН CSS - Gemini-ийн дизайныг хүчээр (Force) тулгах
+# 2. Advanced CSS for True Gemini UI
 st.markdown("""
     <style>
-    /* Үндсэн дэвсгэр өнгө */
+    /* Үндсэн фон болон текст */
     .stApp {
         background-color: #131314 !important;
-        color: #e3e3e3 !important;
+        color: #E3E3E3 !important;
+        font-family: 'Google Sans', Arial, sans-serif !important;
     }
 
-    /* Sidebar - Зүүн талын цэс */
+    /* Sidebar - Зүүн талын нарийн цэс */
     section[data-testid="stSidebar"] {
-        background-color: #1e1f20 !important;
-        width: 260px !important;
+        background-color: #1E1F20 !important;
+        width: 300px !important;
+        border-right: 1px solid #333 !important;
     }
 
-    /* Sidebar доторх текстүүд */
-    section[data-testid="stSidebar"] .stText, section[data-testid="stSidebar"] label {
-        color: #e3e3e3 !important;
-    }
-
-    /* Чатны хэсэгт илүү том зай авах */
-    .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 6rem;
-        max-width: 850px; /* Gemini шиг төвлөрсөн нарийн чат */
-    }
-
-    /* Gemini-ийн бөөрөнхий асуулт бичих талбар */
-    .stChatInputContainer {
-        bottom: 20px !important;
-        padding: 0 !important;
+    /* Sidebar доторх элементүүд */
+    .st-emotion-cache-6qob1r {
+        background-color: #1E1F20 !important;
     }
     
+    /* Шинэ чат товчлуур */
+    div.stButton > button {
+        border-radius: 24px !important;
+        background-color: #1A1C1E !important;
+        color: #E3E3E3 !important;
+        border: 1px solid #444746 !important;
+        padding: 10px 20px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease;
+    }
+    div.stButton > button:hover {
+        background-color: #2D2F31 !important;
+        border-color: #5F6368 !important;
+    }
+
+    /* Чатны талбарын хэмжээг Gemini шиг төвлөрүүлэх */
+    .main .block-container {
+        max-width: 900px !important;
+        padding-top: 5rem !important;
+    }
+
+    /* Мэндчилгээний текст */
+    .gemini-title {
+        font-size: 44px !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.5px !important;
+        margin-bottom: 0px !important;
+    }
+    .gemini-subtitle {
+        font-size: 44px !important;
+        color: #444746 !important;
+        font-weight: 500 !important;
+        margin-top: -15px !important;
+    }
+
+    /* Input Box (Prompt Bar) */
+    .stChatInputContainer {
+        padding-bottom: 30px !important;
+    }
     .stChatInputContainer > div {
-        background-color: #1e1f20 !important;
+        background-color: #1E1F20 !important;
         border: 1px solid #444746 !important;
         border-radius: 32px !important;
-        padding: 5px 15px !important;
     }
 
-    .stChatInputContainer textarea {
-        color: #e3e3e3 !important;
-    }
-
-    /* Мессежүүдийн дизайн */
+    /* Чатны мессежүүд */
     [data-testid="stChatMessage"] {
         background-color: transparent !important;
-        border-bottom: 0px solid #333 !important;
-        margin-bottom: 20px !important;
-    }
-
-    /* Хэрэгслүүдийн товчлуурыг гоё болгох */
-    div.stButton > button {
-        border-radius: 20px !important;
-        background-color: #333537 !important;
-        border: none !important;
-        color: white !important;
-        transition: 0.3s;
+        font-size: 16px !important;
+        line-height: 1.6 !important;
     }
     
-    div.stButton > button:hover {
-        background-color: #444746 !important;
-    }
-
-    /* Файл хуулах хэсгийг sidebar-т тааруулах */
-    .stFileUploader {
-        padding: 0px !important;
+    /* Зураг хуулах хэсэг (Sidebar Tool) */
+    .stFileUploader section {
+        background-color: #1A1C1E !important;
+        border: 1px dashed #444746 !important;
+        border-radius: 12px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Sidebar - Gemini Sidebar Style
+# 3. Sidebar Implementation
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
+    # Логог жижиг бөгөөд цэвэрхэн харуулах
     try:
-        st.image("logo.png", width=50)
+        st.image("logo.png", width=40)
     except:
-        st.markdown("### ⚡ ZeppFusion")
+        st.markdown("<h2 style='color:#A78BFA'>⚡</h2>", unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    # Шинэ чат эхлүүлэх (Gemini-ийн "+" товч шиг)
-    if st.button("➕ Шинэ чат", use_container_width=True):
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("＋ Шинэ чат", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-    st.markdown("<br><b>⚙️ Тохиргоо</b>", unsafe_allow_html=True)
-    api_key = st.text_input("API Key:", type="password", label_visibility="collapsed")
+    st.markdown("<br><p style='color:#8E918F; font-size:14px; font-weight:500;'>Тохиргоо</p>", unsafe_allow_html=True)
+    api_key = st.text_input("Gemini API Key", type="password", label_visibility="collapsed", placeholder="API Key оруулна уу")
     
-    st.markdown("<br><b>🛠️ Хэрэгслүүд</b>", unsafe_allow_html=True)
-    # Зураг унших хэрэгсэл
-    uploaded_file = st.file_uploader("Зураг шинжлэх", type=["jpg", "png", "jpeg"])
+    st.markdown("<br><p style='color:#8E918F; font-size:14px; font-weight:500;'>Хэрэгслүүд</p>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Зураг шинжлэх", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     
-    # Чат татах хэрэгсэл
     if "messages" in st.session_state and len(st.session_state.messages) > 0:
         chat_text = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages])
-        st.download_button("📥 Чатыг татах", chat_text, file_name="chat.txt", use_container_width=True)
+        st.download_button("📥 Чатыг татах", chat_text, file_name="chat_history.txt", use_container_width=True)
 
-# 4. Main Chat Interface
+# 4. Main Chat Logic
 if not api_key:
-    # Мэндчилгээний хэсэг (Gemini Style)
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='font-size: 50px; background: -webkit-linear-gradient(#4285f4, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>Сайн байна уу?</h1>", unsafe_allow_html=True)
-    st.markdown("<h1 style='font-size: 50px; color: #444746; margin-top: -30px;'>Би ZeppFusion байна.</h1>", unsafe_allow_html=True)
-    st.info("👈 Үргэлжлүүлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
+    # Gemini Welcome Screen
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 class='gemini-title' style='background: -webkit-linear-gradient(#4285f4, #9b72cb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>Сайн байна уу?</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='gemini-subtitle'>Би ZeppFusion байна.</h1>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("👈 Эхлэхийн тулд зүүн талын цэсэнд API Key-ээ оруулна уу.")
 else:
-    # Ой санамж үүсгэх
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Хуучин яриаг харуулах
+    # Display Chat History
     for message in st.session_state.messages:
         avatar = "👤" if message["role"] == "user" else "⚡"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-    # Асуулт бичих хэсэг
-    if prompt := st.chat_input("ZeppFusion-ээс асуу..."):
-        # Хэрэглэгчийн тал
+    # Chat Input
+    if prompt := st.chat_input("Эндээс асуу..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👤"):
             st.markdown(prompt)
             if uploaded_file:
                 st.image(uploaded_file, width=300)
 
-        # AI-ийн тал
         with st.chat_message("assistant", avatar="⚡"):
             try:
                 genai.configure(api_key=api_key)
+                # Таны ашиглаж буй Gemini 2.5 Flash
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 with st.spinner(""):
@@ -142,7 +150,6 @@ else:
                         img = Image.open(uploaded_file)
                         response = model.generate_content([f"Чи бол ZeppFusion AI. Монголоор хариул: {prompt}", img])
                     else:
-                        # Ой санамжтай чатлах
                         history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
                         chat = model.start_chat(history=history)
                         response = chat.send_message(prompt)

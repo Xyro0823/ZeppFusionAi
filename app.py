@@ -1,138 +1,166 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
 
 # 1. Page Configuration
-st.set_page_config(page_title="ZeppFusion VOXA", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="VOXA AI", page_icon="⚡", layout="wide")
 
-# 2. Advanced CSS - VOXA Premium Dark UI
+# 2. VOXA-ийн нарийн деталуудыг тусгасан CSS
 st.markdown("""
     <style>
-    /* Үндсэн Background */
+    /* Ерөнхий дэвсгэр - VOXA Dark */
     .stApp {
-        background-color: #0B0C0E !important;
+        background-color: #0F1012 !important;
         color: #E2E8F0 !important;
         font-family: 'Inter', sans-serif !important;
     }
 
-    /* Sidebar - VOXA Style */
+    /* Sidebar - Нарийн деталь: Гүн хар, нарийн хүрээтэй */
     section[data-testid="stSidebar"] {
-        background-color: #111214 !important;
+        background-color: #080809 !important;
         border-right: 1px solid #1F2023 !important;
         width: 280px !important;
     }
-
-    /* Sidebar доторх хайлтын хэсэг */
+    
+    /* Sidebar-ийн Search Bar */
     .stTextInput input {
-        background-color: #1A1B1E !important;
-        border: 1px solid #2D2E32 !important;
-        border-radius: 8px !important;
-        color: white !important;
+        background-color: #161719 !important;
+        border: 1px solid #232528 !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
     }
 
-    /* Чатны хэсгийг голлуулах */
-    .main .block-container {
-        max-width: 850px !important;
-        padding-top: 3rem !important;
-        padding-bottom: 8rem !important;
-    }
-
-    /* VOXA Chat Bubbles */
-    [data-testid="stChatMessage"] {
-        background-color: #16171B !important;
-        border-radius: 16px !important;
-        padding: 20px !important;
-        margin-bottom: 15px !important;
-        border: 1px solid #232428 !important;
-    }
-
-    /* Input Box - Floating ChatGPT Style */
-    .stChatInputContainer {
-        background-color: transparent !important;
-        padding: 20px !important;
-        bottom: 20px !important;
-    }
-    .stChatInputContainer > div {
-        background-color: #1A1B1E !important;
-        border: 1px solid #2D2E32 !important;
-        border-radius: 12px !important;
-        padding: 8px !important;
-    }
-
-    /* Custom Sidebar Menu Items */
+    /* Цэсний элементүүд - VOXA Icons & Spacing */
     .menu-item {
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 5px;
-        color: #94A3B8;
         display: flex;
         align-items: center;
-        gap: 12px;
+        padding: 10px 12px;
+        margin: 4px 0;
+        border-radius: 10px;
+        color: #8E9196;
+        font-size: 14px;
+        font-weight: 500;
+        transition: 0.2s;
         cursor: pointer;
     }
     .menu-item:hover {
-        background-color: #1F2023;
-        color: white;
+        background-color: #161719;
+        color: #FFFFFF;
     }
     .active-menu {
-        background-color: #2D2E32;
-        color: white;
+        background-color: #1A1B1E;
+        color: #FFFFFF !important;
+    }
+    .menu-icon {
+        margin-right: 12px;
+        width: 18px;
+        opacity: 0.7;
     }
 
-    /* Logo Gradient */
-    .logo-text {
-        font-size: 24px;
-        font-weight: 800;
-        background: linear-gradient(to right, #8B5CF6, #EC4899);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 30px;
+    /* Чатны хэсэг - Пропорци */
+    .main .block-container {
+        max-width: 950px !important;
+        padding-top: 2rem !important;
+    }
+
+    /* Мессежүүд - VOXA Bubble Design */
+    [data-testid="stChatMessage"] {
+        background-color: transparent !important;
+        border-bottom: 1px solid #1A1B1E !important;
+        padding: 24px 0 !important;
+        border-radius: 0px !important;
+    }
+    
+    /* "Start New Project" товч - VOXA style */
+    div.stButton > button {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        border: none !important;
+        width: 100% !important;
+        height: 45px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Доод талын Input - Floating Card */
+    .stChatInputContainer {
+        padding: 20px 0 !important;
+        background: transparent !important;
+        bottom: 20px !important;
+    }
+    .stChatInputContainer > div {
+        background-color: #161719 !important;
+        border: 1px solid #232528 !important;
+        border-radius: 16px !important;
+        padding: 10px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+    }
+
+    /* Welcome Grid */
+    .welcome-card {
+        background: #111214;
+        border: 1px solid #1F2023;
+        padding: 24px;
+        border-radius: 16px;
+        height: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Sidebar (VOXA Navigation)
+# 3. Sidebar (VOXA True Structure)
 with st.sidebar:
-    st.markdown('<p class="logo-text">VOXA AI</p>', unsafe_allow_html=True)
+    st.markdown("<h2 style='color:white; padding: 10px 0;'>VOXA</h2>", unsafe_allow_html=True)
     
-    # New Chat Button
-    if st.button("＋ New Project", use_container_width=True):
+    if st.button("＋ Start New Project"):
         st.session_state.messages = []
         st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.text_input("Search chats...", placeholder="Find anything...", label_visibility="collapsed")
+    st.text_input("Search", placeholder="Search project...", label_visibility="collapsed")
     
-    # Mock Menu
-    st.markdown("""
-        <div class="menu-item active-menu">🏠 My Projects</div>
-        <div class="menu-item">💬 Recent Chats</div>
-        <div class="menu-item">🎨 Templates</div>
-        <div class="menu-item">⚙️ Settings</div>
-    """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # VOXA Menu Items
+    menu_html = """
+    <div class="menu-item active-menu"><span class="menu-icon">📁</span> My Projects</div>
+    <div class="menu-item"><span class="menu-icon">💬</span> Chats</div>
+    <div class="menu-item"><span class="menu-icon">📄</span> Templates</div>
+    <div class="menu-item"><span class="menu-icon">⚙️</span> Settings</div>
+    <br>
+    <p style='color:#4A4B50; font-size:11px; padding-left:12px; letter-spacing:1px;'>CHATS</p>
+    <div class="menu-item"><span class="menu-icon">✨</span> Startup Generator</div>
+    <div class="menu-item"><span class="menu-icon">📅</span> Weekend Ideas</div>
+    <div class="menu-item"><span class="menu-icon">📊</span> Pitch Deck Structure</div>
+    """
+    st.markdown(menu_html, unsafe_allow_html=True)
 
     st.markdown("---")
     api_key = st.text_input("Gemini API Key", type="password", placeholder="Enter your key...")
 
-# 4. Main UI & Logic
+# 4. Main Chat Engine
 if not api_key:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center; font-size:48px; font-weight:800;'>Welcome back, User</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#64748B; font-size:18px;'>Ready to build something amazing today?</p>", unsafe_allow_html=True)
+    # VOXA Dashboard Style
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size:52px; font-weight:800; letter-spacing:-2px;'>VOXA Intelligence</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#8E9196; font-size:18px;'>Select a template or start a new project to begin.</p>", unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("👈 Please enter your API Key in the sidebar to unlock ZeppFusion VOXA.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="welcome-card"><h3>🚀 Templates</h3><p style="color:#64748B">Fast-track your workflow with AI templates.</p></div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="welcome-card"><h3>🛠️ Custom Tools</h3><p style="color:#64748B">Configure AI models for specific tasks.</p></div>', unsafe_allow_html=True)
 else:
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display Messages
+    # Display History
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Input Box
-    if prompt := st.chat_input("Ask me anything..."):
+    # VOXA Style Prompt Input
+    if prompt := st.chat_input("Ask me something or type '/' for commands..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -142,15 +170,14 @@ else:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
-                # Context Memory
+                # Memory
                 history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
                 chat = model.start_chat(history=history)
                 
-                with st.spinner("Analyzing..."):
+                with st.spinner("Processing..."):
                     response = chat.send_message(prompt)
                 
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
-                st.error(f"System Error: {e}")
-            
+                st.error(f"Error: {e}")

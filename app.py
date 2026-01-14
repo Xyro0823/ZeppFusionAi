@@ -1,222 +1,177 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
+import time
 
-# 1. Page Configuration
-st.set_page_config(page_title="ZeppFusion AI", page_icon="⚡", layout="wide")
+# 1. Page Config
+st.set_page_config(page_title="ZeppFusion", page_icon="⚡", layout="wide")
 
-# 2. Pixel-Perfect CSS (Яг VOXA-ийн деталь бүрийг дуурайсан)
+# 2. Advanced CSS (Бичлэг дээрх дизайныг 100% дуурайсан)
 st.markdown("""
     <style>
     /* Үндсэн Background */
     .stApp {
-        background-color: #0F1012 !important;
-        color: #E2E8F0 !important;
-        font-family: 'Inter', -apple-system, sans-serif !important;
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Sidebar - VOXA-ийн гүн бараан өнгө болон нарийн зураас */
+    /* Sidebar - Бичлэг дээрх шиг цэвэрхэн */
     section[data-testid="stSidebar"] {
-        background-color: #080809 !important;
-        border-right: 1px solid #1F2023 !important;
-        width: 280px !important;
+        background-color: #000000 !important;
+        border-right: 1px solid #1A1A1A !important;
+        width: 260px !important;
     }
 
-    /* Лого хэсэг */
-    .logo-container {
-        padding: 20px 0px 30px 10px;
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: -1px;
-        color: white;
-    }
-
-    /* Sidebar-ийн "Start New Project" товчлуур - VOXA-ийн Цагаан товч */
-    div.stButton > button {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border-radius: 12px !important;
-        border: none !important;
-        padding: 12px !important;
-        font-weight: 700 !important;
-        width: 100% !important;
-        margin-bottom: 20px !important;
-        font-size: 14px !important;
-    }
-
-    /* Хайлтын хэсэг (Search) */
-    .stTextInput input {
-        background-color: #161719 !important;
-        border: 1px solid #232528 !important;
-        border-radius: 10px !important;
-        color: white !important;
-    }
-
-    /* Sidebar Цэсний элементүүд */
-    .nav-item {
+    /* Sidebar Profile - Хамгийн доор байрлах хэсэг */
+    .sidebar-footer {
+        position: fixed;
+        bottom: 20px;
+        width: 220px;
+        padding: 15px;
+        background: #0A0A0A;
+        border: 1px solid #1A1A1A;
+        border-radius: 16px;
         display: flex;
         align-items: center;
-        padding: 12px;
-        border-radius: 10px;
-        color: #8E9196;
-        font-size: 14px;
-        margin-bottom: 4px;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .nav-item:hover { background-color: #161719; color: white; }
-    .nav-item.active { background-color: #1A1B1E; color: white; }
-    .nav-icon { margin-right: 12px; font-size: 18px; }
-
-    /* Чатны хэсэг - Пропорци */
-    .main .block-container {
-        max-width: 900px !important;
-        padding-top: 3rem !important;
+        gap: 12px;
     }
 
-    /* VOXA Chat Bubbles - Булцгар биш, цэвэрхэн line дизайн */
-    [data-testid="stChatMessage"] {
-        background-color: transparent !important;
-        border-bottom: 1px solid #1A1B1E !important;
-        padding: 30px 0 !important;
-        border-radius: 0 !important;
-    }
-
-    /* --- INPUT BAR: VOXA-ИЙН ХАМГИЙН ЧУХАЛ ХЭСЭГ --- */
+    /* Input Bar - Яг бичлэг дээрх шиг бөөрөнхий */
     .stChatInputContainer {
-        padding: 20px !important;
+        padding: 20px 10% !important;
         background: transparent !important;
-        bottom: 10px !important;
     }
     .stChatInputContainer > div {
-        background-color: #161719 !important;
-        border: 1px solid #232528 !important;
-        border-radius: 32px !important;
-        padding: 6px 15px 6px 50px !important; /* (+) товчны зай */
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+        background-color: #0A0A0A !important;
+        border: 1px solid #1A1A1A !important;
+        border-radius: 35px !important;
+        padding-left: 45px !important;
+        height: 55px;
     }
 
-    /* Зүүн талын (+) товч */
+    /* [+] Товчлуур */
     .stChatInputContainer::before {
         content: '+';
         position: absolute;
-        left: 40px;
-        bottom: 37px;
-        z-index: 1000;
-        color: #8E9196;
+        left: 8.5%;
+        bottom: 42px;
+        z-index: 100;
+        color: #8E8E93;
         font-size: 24px;
-        font-weight: 300;
+        cursor: pointer;
     }
 
-    /* Баруун талын Микрофон дүрс */
+    /* Микрофон дүрс */
     .stChatInputContainer::after {
         content: '🎙️';
         position: absolute;
-        right: 85px;
-        bottom: 38px;
-        z-index: 1000;
-        font-size: 18px;
-        opacity: 0.6;
+        right: 13.5%;
+        bottom: 42px;
+        z-index: 100;
+        opacity: 0.5;
     }
 
-    /* Илгээх товчлуур - Нил ягаан */
+    /* Илгээх товч - Нил ягаан */
     [data-testid="stChatInputSubmit"] {
-        background-color: #7C3AED !important;
+        background-color: #6366F1 !important;
         border-radius: 50% !important;
-        color: white !important;
+        padding: 6px !important;
+        margin-right: 5px;
     }
 
-    /* Welcome Text */
-    .hero-title {
-        font-size: 56px !important;
-        font-weight: 800 !important;
-        letter-spacing: -2px !important;
-        margin-bottom: 0px !important;
+    /* Мессежүүд гарч ирэх эффект */
+    .chat-msg {
+        animation: fadeIn 0.5s ease-in;
+        border-bottom: 1px solid #111111;
+        padding: 25px 0;
     }
-    .hero-subtitle {
-        color: #4A4B50 !important;
-        font-size: 24px !important;
-        font-weight: 500 !important;
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Sidebar Menu */
+    .nav-link {
+        padding: 12px;
+        margin: 4px 0;
+        border-radius: 12px;
+        color: #8E8E93;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: 0.3s;
+    }
+    .nav-link:hover { background: #111111; color: white; }
+    .active-nav { background: #111111; color: white !important; }
+
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Sidebar (Бүх товчлуур, цэсүүд орсон)
+# 3. Sidebar Layout
 with st.sidebar:
-    st.markdown('<div class="logo-container">ZeppFusion</div>', unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-bottom:30px; letter-spacing:-1px;'>ZeppFusion</h2>", unsafe_allow_html=True)
     
-    if st.button("＋ Start New Project"):
+    if st.button("＋ Start New Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
-
-    st.text_input("Search", placeholder="Search project...", label_visibility="collapsed")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Цэсний элементүүд (VOXA-ийн иконуудтай адилхан)
+    st.markdown('<div class="nav-link active-nav">🏠 Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-link">💬 Chat History</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-link">🎨 Design Lab</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-link">⚙️ Settings</div>', unsafe_allow_html=True)
+
+    # Sidebar Profile (Бичлэг дээрх шиг доор нь)
     st.markdown("""
-        <div class="nav-item active"><span class="nav-icon">🏠</span> My Projects</div>
-        <div class="nav-item"><span class="nav-icon">💬</span> Chats</div>
-        <div class="nav-item"><span class="nav-icon">📄</span> Templates</div>
-        <div class="nav-item"><span class="nav-icon">⚙️</span> Settings</div>
-        <br>
-        <p style='color:#4A4B50; font-size:11px; padding-left:12px; font-weight:700;'>CHATS</p>
-        <div class="nav-item"><span class="nav-icon">✨</span> Startup Generator</div>
-        <div class="nav-item"><span class="nav-icon">📊</span> Pitch Deck Structure</div>
-        <div class="nav-item"><span class="nav-icon">💡</span> Future of AI</div>
+        <div class="sidebar-footer">
+            <div style="width:35px; height:35px; background:linear-gradient(45deg, #6366F1, #A855F7); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">U</div>
+            <div>
+                <div style="font-size:14px; font-weight:600;">User Name</div>
+                <div style="font-size:11px; color:#8E8E93;">Personal Account</div>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    api_key = st.text_input("Gemini API Key", type="password", placeholder="Enter key to chat...")
-
-# 4. Main UI & Chat Logic
-if not "messages" in st.session_state:
+# 4. Main Chat Interface
+if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Welcome Screen (Бичлэг дээрх шиг)
 if not st.session_state.messages:
-    # Мэндчилгээний хэсэг
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 class='hero-title'>Hello, User</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 class='hero-subtitle'>How can I help you build today?</h2>", unsafe_allow_html=True)
-    
-    # Feature Cards (VOXA style)
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""<div style='background:#111214; padding:25px; border-radius:16px; border:1px solid #1F2023;'>
-            <h4 style='margin:0;'>🚀 Templates</h4><p style='color:#8E9196; font-size:14px; margin-top:10px;'>Fast-track your workflow with professional AI setups.</p>
-        </div>""", unsafe_allow_html=True)
-    with col2:
-        st.markdown("""<div style='background:#111214; padding:25px; border-radius:16px; border:1px solid #1F2023;'>
-            <h4 style='margin:0;'>🧠 Custom Tools</h4><p style='color:#8E9196; font-size:14px; margin-top:10px;'>Configure ZeppFusion for your specific industry needs.</p>
-        </div>""", unsafe_allow_html=True)
+    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size:64px; font-weight:800; text-align:center;'>What can I help <br>you build?</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#8E8E93; font-size:20px;'>ZeppFusion AI is ready for your command.</p>", unsafe_allow_html=True)
 else:
-    # Чат харуулах
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        with st.container():
+            st.markdown(f'<div class="chat-msg">', unsafe_allow_html=True)
+            avatar = "👤" if message["role"] == "user" else "⚡"
+            with st.chat_message(message["role"], avatar=avatar):
+                st.markdown(message["content"])
+            st.markdown('</div>', unsafe_allow_html=True)
 
-# 5. Chat Input (Функциональ)
-if prompt := st.chat_input("Ask me something or type '/' for commands..."):
+# 5. API Logic
+with st.sidebar:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    api_key = st.text_input("Gemini Key", type="password", placeholder="Enter key...")
+
+# Chat Input
+if prompt := st.chat_input("Ask anything..."):
     if not api_key:
-        st.error("Please enter your API Key in the sidebar first!")
+        st.info("👈 Please enter your Gemini API Key in the sidebar.")
     else:
-        # Хэрэглэгчийн мессеж
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # AI Response
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="⚡"):
             try:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
-                # Санах ойтой чатлах
+                # Context Memory
                 history = [{"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]} for m in st.session_state.messages[:-1]]
-                chat_session = model.start_chat(history=history)
+                chat = model.start_chat(history=history)
                 
-                with st.spinner("Thinking..."):
-                    response = chat_session.send_message(prompt)
-                
+                response = chat.send_message(prompt)
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:

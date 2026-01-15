@@ -8,7 +8,7 @@ from datetime import datetime
 from streamlit_google_auth import Authenticate
 
 # --- 1. АПП-ЫН ҮНДСЭН ТОХИРГОО ---
-st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="ZeppFusion", page_icon="⚡", layout="wide")
 
 # Таны апп-ын албан ёсны хаяг
 MY_APP_URL = "https://zeppfusionai-xyro.streamlit.app" 
@@ -139,3 +139,4 @@ if st.session_state.get("current_session"):
             st.error(f"AI алдаа: {e}")
 else:
     st.info("Чат эхлүүлэхийн тулд зүүн цэснээс 'Шинэ чат' товчийг дарна уу.")
+

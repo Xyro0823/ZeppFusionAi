@@ -6,7 +6,7 @@ import re  # И-мэйл шалгахад ашиглана
 from datetime import datetime
 
 # --- 1. АПП-ЫН ТОХИРГОО ---
-st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="ZeppFusion", page_icon="⚡", layout="wide")
 
 # --- 2. И-МЭЙЛ ШАЛГАХ ФУНКЦ ---
 def is_valid_email(email):
@@ -79,7 +79,7 @@ if not st.session_state.logged_in:
                 
     with tab2:
         new_name = st.text_input("Бүтэн нэр")
-        new_user = st.text_input("И-мэйл хаяг бүртгүүлэх (Жишээ: name@email.com)")
+        new_user = st.text_input("И-мэйл хаяг бүртгүүлэх (Жишээ: name@gmail.com)")
         new_pwd = st.text_input("Шинэ нууц үг", type='password')
         
         if st.button("Бүртгүүлэх", use_container_width=True):
@@ -141,3 +141,4 @@ if prompt := st.chat_input("Энд бичнэ үү..."):
     except Exception as e:
         st.error(f"Gemini API Error: {e}")
     conn.close()
+

@@ -1,113 +1,139 @@
 import streamlit as st
 import google.generativeai as genai
 import sqlite3
-import hashlib
 from datetime import datetime
 from PIL import Image
+import os
 
-# --- 1. CSS FOR MODERN LOOK (Gemini Style) ---
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="ZeppFusion",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# --- CUSTOM CSS (GEMINI STYLE) ---
 st.markdown("""
 <style>
-    /* Үндсэн фонт болон дэвсгэр */
-    .stApp { background-color: #0e0e10; }
+    @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
     
-    /* Чатны оролтын хэсгийг Gemini шиг болгох */
-    .stChatInputContainer {
-        padding: 10px;
-        background-color: #1e1e20 !important;
+    * { font-family: 'Google Sans', sans-serif; }
+    .stApp { background-color: #131314; }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] { background-color: #1e1f20; border-right: 1px solid #2d2e2f; }
+    
+    /* Hide Default Headers */
+    header, footer { visibility: hidden; }
+
+    /* Chat Messages */
+    .stChatMessage { background-color: transparent !important; border: none !important; }
+    
+    /* Chat Input Fixed at Bottom */
+    div[data-testid="stChatInput"] {
         border-radius: 28px !important;
+        background-color: #1e1f20 !important;
         border: 1px solid #3c4043 !important;
     }
-    
-    /* Чатны бөмбөлөгүүд */
-    section[data-testid="stChatMessageContainer"] {
-        padding-bottom: 120px; /* Оролтын хэсэгт даруулахгүй байх */
-    }
-    
-    /* Файл оруулах товчийг цэгцлэх */
-    .stFileUploader section {
-        padding: 0 ! IMPORTANT;
-        border: none ! IMPORTANT;
-        background: transparent ! IMPORTANT;
-    }
+
+    /* File Uploader Style */
+    .stFileUploader section { padding: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. DATABASE & LOGIC (Өмнөх хэсгүүд хэвээр) ---
+# --- DATABASE FUNCTIONS ---
 def init_db():
     conn = sqlite3.connect('zepp_fusion.db')
     c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, role TEXT, content TEXT, timestamp TEXT)')
-    conn.commit(); conn.close()
+    c.execute('''CREATE TABLE IF NOT EXISTS messages
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, role TEXT, content TEXT, timestamp TEXT)''')
+    conn.commit()
+    conn.close()
+
+def save_message(username, role, content):
+    conn = sqlite3.connect('zepp_fusion.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO messages(username, role, content, timestamp) VALUES (?,?,?,?)',
+              (username, role, content, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+
+def get_chat_history(username):
+    conn = sqlite3.connect('zepp_fusion.db')
+    c = conn.cursor()
+    c.execute('SELECT role, content FROM messages WHERE username=? ORDER BY id ASC', (username,))
+    history = c.fetchall()
+    conn.close()
+    return history
 
 init_db()
 
-# --- 3. MAIN CHAT AREA ---
+# Session state
 if "username" not in st.session_state:
-    st.session_state.username = "User" # Туршилтын зориулалтаар
+    st.session_state.username = "User"
 
-# Чатны түүхийг харуулах
-conn = sqlite3.connect('zepp_fusion.db'); c = conn.cursor()
-c.execute('SELECT role, content FROM messages WHERE username=? ORDER BY id ASC', (st.session_state.username,))
-db_history = c.fetchall()
-conn.close()
+# --- SIDEBAR ---
+with st.sidebar:
+    st.markdown("# ⚡ ZeppFusion")
+    if st.button("🗑️ Түүх устгах", use_container_width=True):
+        conn = sqlite3.connect('zepp_fusion.db'); c = conn.cursor()
+        c.execute('DELETE FROM messages WHERE username=?', (st.session_state.username,))
+        conn.commit(); conn.close()
+        st.rerun()
+    st.markdown("---")
+    st.markdown("**Model: Gemini 2.5 Flash**")
 
+# --- MAIN CHAT AREA ---
+db_history = get_chat_history(st.session_state.username)
 for role, content in db_history:
     with st.chat_message(role):
         st.markdown(content)
 
-# --- 4. THE MODERN INPUT BAR (Gemini Style) ---
-# Доор бэхлэгдсэн контейнер
-input_container = st.container()
+# --- INPUT AREA (Gemini Layout) ---
+col1, col2 = st.columns([0.07, 0.93])
 
-with input_container:
-    # Доорх 2 багана нь Нэмэх тэмдэг болон Чатны талбарыг зэрэгцүүлнэ
-    col1, col2 = st.columns([0.1, 0.9])
-    
-    with col1:
-        # Нэмэх тэмдэг бүхий файл оруулагч
-        uploaded_file = st.file_uploader("➕", type=['png', 'jpg', 'jpeg', 'pdf'], label_visibility="collapsed")
-    
-    with col2:
-        prompt = st.chat_input("Message ZeppFusion...")
+with col1:
+    # Нэмэх тэмдэг шиг харагдах файл оруулагч
+    uploaded_file = st.file_uploader("➕", type=['png', 'jpg', 'jpeg'], label_visibility="collapsed")
 
-# --- 5. AI RESPONSE LOGIC ---
+with col2:
+    prompt = st.chat_input("ZeppFusion-д мессеж бичих...")
+
+# --- HANDLE INPUT ---
 if prompt:
-    # Хэрэглэгчийн мессежийг шууд харуулах
+    # Хэрэглэгчийн мессежийг харуулах
     with st.chat_message("user"):
+        if uploaded_file:
+            st.image(uploaded_file, width=250)
         st.markdown(prompt)
     
+    save_message(st.session_state.username, "user", prompt)
+
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        # Таны хүссэн Gemini 2.5 Flash (эсвэл 2.0)
-        model = genai.GenerativeModel('gemini-2.0-flash-exp') 
-        
-        # Санах ойг бэлдэх
+        # Хэрэв gemini-2.5-flash ажиллахгүй бол gemini-1.5-flash болгож солиорой
+        model = genai.GenerativeModel('gemini-1.5-flash') 
+
+        # Контекст бэлдэх
         gemini_history = []
         for role, content in db_history:
-            gemini_role = "model" if role == "assistant" else "user"
-            gemini_history.append({"role": gemini_role, "parts": [content]})
-        
-        chat = model.start_chat(history=gemini_history)
-        
-        with st.spinner(""):
+            gemini_history.append({"role": "model" if role == "assistant" else "user", "parts": [content]})
+
+        with st.spinner("Бодож байна..."):
             if uploaded_file:
                 img = Image.open(uploaded_file)
                 response = model.generate_content([prompt, img])
             else:
+                chat = model.start_chat(history=gemini_history)
                 response = chat.send_message(prompt)
-        
+
         # AI-ийн хариултыг харуулах
         with st.chat_message("assistant"):
             st.markdown(response.text)
         
-        # DB-д хадгалах
-        conn = sqlite3.connect('zepp_fusion.db'); c = conn.cursor()
-        c.execute('INSERT INTO messages(username, role, content, timestamp) VALUES (?,?,?,?)',
-                  (st.session_state.username, "user", prompt, datetime.now().isoformat()))
-        c.execute('INSERT INTO messages(username, role, content, timestamp) VALUES (?,?,?,?)',
-                  (st.session_state.username, "assistant", response.text, datetime.now().isoformat()))
-        conn.commit(); conn.close()
-        
+        save_message(st.session_state.username, "assistant", response.text)
+        st.rerun()
+
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Алдаа: {str(e)}")

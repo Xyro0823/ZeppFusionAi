@@ -10,10 +10,10 @@ from streamlit_google_auth import Authenticate
 # --- 1. APP CONFIG & SECRETS ---
 st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
 
-# Апп-ын хаяг (Google Cloud Console дээрхтэй яг таарч байх ёстой)
-MY_APP_URL = "https://zeppfusionai.streamlit.app" 
+# Таны апп-ын ЖИНХЭНЭ хаяг (Зураг дээрхтэй яг ижил байх ёстой)
+MY_APP_URL = "https://zeppfusionai-xyro.streamlit.app" 
 
-# Secrets-ээс мэдээлэл аваад JSON файл болгож хадгалах (ЭНЭ ХЭСЭГ АЛДААГ ЗАСНА)
+# Secrets-ээс мэдээлэл аваад түр зуурын JSON файл үүсгэх
 google_secrets_dict = {
     "web": {
         "client_id": st.secrets["GOOGLE_CLIENT_ID"],
@@ -25,13 +25,14 @@ google_secrets_dict = {
     }
 }
 
+# Файлыг системд түр хадгалах
 with open('client_secrets.json', 'w') as f:
     json.dump(google_secrets_dict, f)
 
-# Authenticator-ийг үүсгэх (Файлын замыг дамжуулна)
+# Authenticator Setup
 try:
     authenticator = Authenticate(
-        secret_credentials_path='client_secrets.json', # Одоо файл болсон тул ажиллана
+        secret_credentials_path='client_secrets.json',
         cookie_name='zepp_session',
         cookie_key=st.secrets["COOKIE_KEY"],
         cookie_expiry_days=30,
@@ -73,16 +74,15 @@ st.markdown("""
 user_info = authenticator.login()
 
 if not user_info:
-    st.markdown("""
+    st.markdown(f"""
         <div style="text-align:center; margin-top:100px;">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69456a8a7026ba13461ef577/a8ac75228_Gemini_Generated_Image_c9qxrc9qxrc9qxrc1.png" width="100">
-            <h1 style="color:white; font-size:3rem; margin-top:20px;">ZeppFusion Pro</h1>
+            <h1 style="color:white; font-size:3rem;">ZeppFusion Pro</h1>
             <p style="color:#71717a; font-size:1.2rem; margin-bottom:40px;">Next-Gen AI Workspace</p>
         </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-# Түр зуурын файлыг устгах (Аюулгүй байдлын үүднээс)
+# Нэвтэрсний дараа түр файлыг устгах
 if os.path.exists('client_secrets.json'):
     os.remove('client_secrets.json')
 

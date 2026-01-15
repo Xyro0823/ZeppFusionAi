@@ -5,4 +5,7 @@ Pillow
 streamlit-google-auth
 requests
 oauthlib
-
+fastapi
+uvicorn
+python-jose
+PyJWT

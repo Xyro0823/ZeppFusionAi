@@ -2,30 +2,36 @@ import streamlit as st
 import google.generativeai as genai
 import sqlite3
 import hashlib
+import json
+import os
 from datetime import datetime
 from streamlit_google_auth import Authenticate
 
 # --- 1. APP CONFIG & SECRETS ---
 st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
 
-# Апп-ын хаягийг энд зөв тохируулна
+# Апп-ын хаяг (Google Cloud Console дээрхтэй яг таарч байх ёстой)
 MY_APP_URL = "https://zeppfusionai.streamlit.app" 
 
-google_secrets = {
+# Secrets-ээс мэдээлэл аваад JSON файл болгож хадгалах (ЭНЭ ХЭСЭГ АЛДААГ ЗАСНА)
+google_secrets_dict = {
     "web": {
         "client_id": st.secrets["GOOGLE_CLIENT_ID"],
         "client_secret": st.secrets["GOOGLE_CLIENT_SECRET"],
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "redirect_uris": [MY_APP_URL, "http://localhost:8501"]
+        "redirect_uris": [MY_APP_URL]
     }
 }
 
-# Authenticator Setup
+with open('client_secrets.json', 'w') as f:
+    json.dump(google_secrets_dict, f)
+
+# Authenticator-ийг үүсгэх (Файлын замыг дамжуулна)
 try:
     authenticator = Authenticate(
-        secret_credentials_path=google_secrets,
+        secret_credentials_path='client_secrets.json', # Одоо файл болсон тул ажиллана
         cookie_name='zepp_session',
         cookie_key=st.secrets["COOKIE_KEY"],
         cookie_expiry_days=30,
@@ -60,12 +66,10 @@ st.markdown("""
     .stApp { background-color: #09090b !important; color: #d4d4d8; }
     section[data-testid="stSidebar"] { background-color: rgba(24, 24, 27, 0.95) !important; border-right: 1px solid #27272a; }
     .stChatMessage { background-color: transparent !important; }
-    .stChatInputContainer { padding-bottom: 20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION FLOW ---
-# login() функцийг Sidebar-аас гадна, төв хэсэгт ажиллуулна
 user_info = authenticator.login()
 
 if not user_info:
@@ -78,7 +82,10 @@ if not user_info:
     """, unsafe_allow_html=True)
     st.stop()
 
-# Нэвтэрсэн хэрэглэгчийн өгөгдөл
+# Түр зуурын файлыг устгах (Аюулгүй байдлын үүднээс)
+if os.path.exists('client_secrets.json'):
+    os.remove('client_secrets.json')
+
 user_email = user_info.get('email')
 user_name = user_info.get('name')
 user_pic = user_info.get('picture', "")
@@ -97,17 +104,14 @@ with st.sidebar:
 
     if st.button("＋ New Conversation", use_container_width=True):
         s_id = hashlib.md5(f"{user_email}{datetime.now()}".encode()).hexdigest()[:10]
-        conn = sqlite3.connect('zepp_vault.db')
-        c = conn.cursor()
+        conn = sqlite3.connect('zepp_vault.db'); c = conn.cursor()
         c.execute('INSERT INTO chat_sessions VALUES (?,?,?,?)', (s_id, user_email, f"Chat {datetime.now().strftime('%H:%M')}", datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
+        conn.commit(); conn.close()
         st.session_state.current_session = s_id
         st.rerun()
 
     st.markdown("---")
-    conn = sqlite3.connect('zepp_vault.db')
-    c = conn.cursor()
+    conn = sqlite3.connect('zepp_vault.db'); c = conn.cursor()
     c.execute('SELECT session_id, title FROM chat_sessions WHERE username=? ORDER BY created_at DESC', (user_email,))
     for sid, title in c.fetchall():
         if st.button(f"💬 {title}", key=sid, use_container_width=True):
@@ -120,8 +124,7 @@ with st.sidebar:
 
 # --- 6. CHAT AREA ---
 if st.session_state.get("current_session"):
-    conn = sqlite3.connect('zepp_vault.db')
-    c = conn.cursor()
+    conn = sqlite3.connect('zepp_vault.db'); c = conn.cursor()
     c.execute('SELECT role, content, timestamp FROM messages WHERE session_id=?', (st.session_state.current_session,))
     for r, cont, t in c.fetchall():
         with st.chat_message(r):

@@ -3,4 +3,6 @@ fpdf
 google-generativeai
 Pillow
 streamlit-google-auth
+requests
+oauthlib
 

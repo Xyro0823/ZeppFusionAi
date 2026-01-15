@@ -2,19 +2,24 @@ import streamlit as st
 import google.generativeai as genai
 import sqlite3
 import hashlib
+import re  # И-мэйл шалгахад ашиглана
 from datetime import datetime
 
 # --- 1. АПП-ЫН ТОХИРГОО ---
 st.set_page_config(page_title="ZeppFusion Pro", page_icon="⚡", layout="wide")
 
-# --- 2. ӨГӨГДЛИЙН САН (USER & CHAT) ---
+# --- 2. И-МЭЙЛ ШАЛГАХ ФУНКЦ ---
+def is_valid_email(email):
+    # Стандарт и-мэйл форматыг шалгах regex
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+# --- 3. ӨГӨГДЛИЙН САН ---
 def init_db():
     conn = sqlite3.connect('zepp_fusion.db')
     c = conn.cursor()
-    # Хэрэглэгчдийн хүснэгт
     c.execute('''CREATE TABLE IF NOT EXISTS users 
                  (username TEXT PRIMARY KEY, password TEXT, full_name TEXT)''')
-    # Мессежүүдийн хүснэгт - ЭНД ХАШИЛТЫГ ЗАСАВ
     c.execute('''CREATE TABLE IF NOT EXISTS messages 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, role TEXT, content TEXT, timestamp TEXT)''')
     conn.commit()
@@ -30,7 +35,7 @@ def check_hashes(password, hashed_text):
 
 init_db()
 
-# --- 3. НЭВТРЭХ ЛОГИК ---
+# --- 4. НЭВТРЭХ ЛОГИК ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
@@ -55,14 +60,14 @@ def add_user(username, password, full_name):
     except:
         return False
 
-# --- 4. НЭВТРЭХ БА БҮРТГҮҮЛЭХ ХЭСЭГ ---
+# --- 5. НЭВТРЭХ БА БҮРТГҮҮЛЭХ ХЭСЭГ ---
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>ZeppFusion Pro</h1>", unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["Нэвтрэх", "Бүртгүүлэх"])
     
     with tab1:
-        user = st.text_input("И-мэйл эсвэл Хэрэглэгчийн нэр", key="l_user")
+        user = st.text_input("И-мэйл хаяг", key="l_user")
         pwd = st.text_input("Нууц үг", type='password', key="l_pwd")
         if st.button("Нэвтрэх", use_container_width=True):
             if login_user(user, pwd):
@@ -70,20 +75,26 @@ if not st.session_state.logged_in:
                 st.session_state.username = user
                 st.rerun()
             else:
-                st.error("Нэр эсвэл нууц үг буруу байна")
+                st.error("И-мэйл эсвэл нууц үг буруу байна")
                 
     with tab2:
         new_name = st.text_input("Бүтэн нэр")
-        new_user = st.text_input("Шинэ и-мэйл")
+        new_user = st.text_input("И-мэйл хаяг бүртгүүлэх (Жишээ: name@email.com)")
         new_pwd = st.text_input("Шинэ нууц үг", type='password')
+        
         if st.button("Бүртгүүлэх", use_container_width=True):
-            if add_user(new_user, new_pwd, new_name):
-                st.success("Бүртгэл амжилттай! Одоо нэвтрэх хэсэгт мэдээллээ оруулна уу.")
+            if not is_valid_email(new_user):
+                st.error("🚨 Буруу и-мэйл хаяг байна! Заавал '@' болон домэйн нэр ( .com, .mn гэх мэт) агуулсан байх ёстой.")
+            elif len(new_pwd) < 6:
+                st.warning("🔒 Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой.")
             else:
-                st.warning("Энэ нэр бүртгэлтэй байна.")
+                if add_user(new_user, new_pwd, new_name):
+                    st.success("✅ Бүртгэл амжилттай! Одоо нэвтрэх хэсэгт и-мэйлээрээ нэвтэрнэ үү.")
+                else:
+                    st.warning("⚠️ Энэ и-мэйл хаяг аль хэдийн бүртгэгдсэн байна.")
     st.stop()
 
-# --- 5. ЧАТНЫ ХЭСЭГ (НЭВТРҮҮЛСНИЙ ДАРАА) ---
+# --- 6. ЧАТНЫ ХЭСЭГ (НЭВТРҮҮЛСНИЙ ДАРАА) ---
 with st.sidebar:
     st.title("⚡ ZeppFusion")
     st.write(f"👤 **{st.session_state.username}**")
@@ -118,7 +129,7 @@ if prompt := st.chat_input("Энд бичнэ үү..."):
     
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         
         with st.chat_message("assistant"):
